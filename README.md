@@ -1,1 +1,1 @@
-# World-layoffs
+# World layoffs Portofolio project using MYSQL
