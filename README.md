@@ -1,68 +1,96 @@
-
-# 2023 World Layoffs Analysis using MySQL
+# World Layoffs 2023 - SQL Data Cleaning & Analysis
 
 ## Project Overview
-This project focuses on analyzing global layoffs in 2023 using MySQL. The dataset is cleaned, standardized, and explored using SQL queries to identify patterns in job layoffs across industries, locations, and time periods.
-
-## Dataset
-The dataset contains information about company layoffs, including:
-- **Company**: Name of the company
-- **Location**: Where the layoffs occurred
-- **Industry**: The sector of the company
-- **Total Laid Off**: The number of employees laid off
-- **Percentage Laid Off**: The percentage of workforce affected
-- **Date**: When the layoffs happened
-- **Stage**: Company growth stage
-- **Country**: Country of the company
-- **Funds Raised (in millions)**: The total funding raised by the company
-
-## SQL Queries
-
-### 1. Data Cleaning
-- Created a staging table (`layoffs_staging`) for data cleaning.
-- Identified and removed duplicate entries.
-- Standardized industry names (e.g., "CryptoCurrency" → "Crypto").
-- Standardized country names (e.g., "United States." → "United States").
-- Converted date column to `DATE` format.
-- Handled missing values by populating industry column based on company name.
-
-### 2. Exploratory Data Analysis (EDA)
-- Identified companies with the **largest layoffs**.
-- Found industries with the highest number of layoffs.
-- Examined layoffs **by country** and **by location**.
-- Analyzed layoffs **over time** to detect trends.
-- Identified the **biggest layoffs in a single event**.
-- Found the total layoffs per **month and year**.
-- Created a rolling total of layoffs over time.
-
-## Key Insights
-- **Tech and Crypto industries** were among the most affected sectors.
-- **Startups** and high-growth companies had significant layoffs.
-- **Layoffs peaked at certain months**, indicating seasonal trends.
-- **Certain countries and locations** had disproportionately high layoffs.
-- **Companies with high funding were also impacted**, indicating broader economic factors.
+This project analyzes global layoffs data using MySQL. It involves data cleaning, removing duplicates, standardizing values, handling missing data, and performing exploratory data analysis (EDA) to extract insights.
 
 ## Technologies Used
-- **MySQL** for querying and analysis
-- **SQL Window Functions** for ranking and aggregations
-- **Data Cleaning Techniques** for handling missing/duplicate data
+- MySQL
+- SQL Queries for Data Cleaning & Analysis
 
-## How to Run the Project
-1. Load the dataset into MySQL.
-2. Execute the SQL scripts in sequence:
-   - Data Cleaning queries
-   - Standardization queries
-   - Exploratory Analysis queries
-3. Visualize insights using MySQL queries or export results for dashboarding.
+## Dataset
+The dataset contains records of layoffs across various companies, industries, locations, and dates.
 
-## Future Enhancements
-- Build a **Power BI or Tableau dashboard** for better visualization.
-- Integrate data from **job postings** to correlate layoffs with hiring trends.
-- Perform **predictive analysis** using machine learning models.
+## Steps Performed
 
----
+### 1. Data Cleaning
+#### **Checking for Duplicates:**
+```sql
+SELECT company, industry, total_laid_off, `date`,
+       ROW_NUMBER() OVER (
+           PARTITION BY company, industry, total_laid_off, `date`
+       ) AS row_num
+FROM world_layoffs.layoffs_staging;
+```
+#### **Deleting Duplicates:**
+```sql
+WITH DELETE_CTE AS (
+    SELECT *,
+           ROW_NUMBER() OVER (
+               PARTITION BY company, location, industry, total_laid_off, `date`
+           ) AS row_num
+    FROM world_layoffs.layoffs_staging
+)
+DELETE FROM world_layoffs.layoffs_staging
+WHERE row_num > 1;
+```
+
+### 2. Standardizing Data
+#### **Handling Null Values:**
+```sql
+UPDATE world_layoffs.layoffs_staging2
+SET industry = NULL
+WHERE industry = '';
+```
+#### **Standardizing Country Names:**
+```sql
+UPDATE world_layoffs.layoffs_staging2
+SET country = TRIM(TRAILING '.' FROM country);
+```
+#### **Converting Date Format:**
+```sql
+UPDATE world_layoffs.layoffs_staging2
+SET `date` = STR_TO_DATE(`date`, '%m/%d/%Y');
+ALTER TABLE world_layoffs.layoffs_staging2
+MODIFY COLUMN `date` DATE;
+```
+
+### 3. Exploratory Data Analysis (EDA)
+#### **Companies with the Highest Layoffs:**
+```sql
+SELECT company, SUM(total_laid_off) AS total_laid_off
+FROM world_layoffs.layoffs_staging2
+GROUP BY company
+ORDER BY total_laid_off DESC
+LIMIT 10;
+```
+#### **Layoffs by Industry:**
+```sql
+SELECT industry, SUM(total_laid_off) AS total_laid_off
+FROM world_layoffs.layoffs_staging2
+GROUP BY industry
+ORDER BY total_laid_off DESC;
+```
+#### **Layoffs Over Time:**
+```sql
+SELECT YEAR(`date`) AS year, SUM(total_laid_off) AS total_laid_off
+FROM world_layoffs.layoffs_staging2
+GROUP BY YEAR(`date`)
+ORDER BY year ASC;
+```
+#### **Rolling Total of Layoffs Per Month:**
+```sql
+WITH DATE_CTE AS (
+    SELECT SUBSTRING(`date`, 1, 7) AS dates, SUM(total_laid_off) AS total_laid_off
+    FROM world_layoffs.layoffs_staging2
+    GROUP BY dates
+)
+SELECT dates, SUM(total_laid_off) OVER (ORDER BY dates ASC) AS rolling_total_layoffs
+FROM DATE_CTE
+ORDER BY dates ASC;
+```
+
+## Conclusion
+This project provides an end-to-end SQL-based approach to analyzing layoff trends, cleaning datasets, and deriving meaningful insights. The findings highlight the industries, companies, and locations most affected by global layoffs.
 
 ## Author
-Diwakar - Electronics & Communication Engineering Student at Jyothy Institute of Technology, Bengaluru. Passionate about **SQL, Python, and Data Analytics**.
-
-For queries, feel free to connect with me!
+- **Diwakar** - Electronics and Communication Engineering, Jyothy Institute of Technology, Bengaluru
